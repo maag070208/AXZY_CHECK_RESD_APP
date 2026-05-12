@@ -1,0 +1,19 @@
+export const BOTTOM_TAB_WHITELIST: string[] = [
+  'HOME_MAIN',
+  'INVENTORY_MAIN',
+  'LOCATIONS_MAIN',
+  'PRODUCTS_MAIN',
+  'ORDERS_MAIN',
+  'CLIENTS_MAIN',
+  'ZONES_MAIN',
+];
+
+export const DRAWER_WHITELIST: string[] = [
+  'HOME_MAIN',
+  'INVENTORY_MAIN',
+  'LOCATIONS_MAIN',
+  'PRODUCTS_MAIN',
+  'ORDERS_MAIN',
+  'CLIENTS_MAIN',
+  'ZONES_MAIN',
+];
