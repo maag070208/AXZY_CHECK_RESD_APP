@@ -192,21 +192,6 @@ export const IncidentDetailScreen = () => {
                 {dateTime.time}
               </ITText>
             </View>
-
-            <View style={styles.metaDivider} />
-
-            <View style={styles.metaItem}>
-              <View style={styles.metaIconBox}>
-                <Icon
-                  source="office-building"
-                  size={16}
-                  color={theme.colors.primary}
-                />
-              </View>
-              <ITText variant="bodySmall" style={styles.metaText}>
-                {incident.client?.name || 'Sin cliente'}
-              </ITText>
-            </View>
           </View>
         </View>
 

@@ -51,13 +51,11 @@ export const RecurringFormScreen = ({ navigation, route }: any) => {
 
   // Form State
   const [title, setTitle] = useState('');
-  const [selectedClientId, setSelectedClientId] = useState<number | string>('');
   const [selectedZoneId, setSelectedZoneId] = useState<number | string>('');
   const [addedLocations, setAddedLocations] = useState<any[]>([]);
   const [selectedGuards, setSelectedGuards] = useState<number[]>([]);
 
   // Catalog State
-  const [clients, setClients] = useState<any[]>([]);
   const [zones, setZones] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
   const [guards, setGuards] = useState<any[]>([]);
@@ -71,14 +69,14 @@ export const RecurringFormScreen = ({ navigation, route }: any) => {
   const loadInitialData = async () => {
     setFetching(true);
     try {
-      const [clientRes, locRes, usersRes] = await Promise.all([
-        getClients(),
+      const [locRes, usersRes, zoneRes] = await Promise.all([
         getLocations(),
         getUsers(),
+        getPaginatedZones({}),
       ]);
 
-      if (clientRes.success) setClients(clientRes.data || []);
       if (locRes.success) setLocations(locRes.data || []);
+      if (zoneRes.success) setZones(zoneRes.data.rows || []);
 
       let filteredGuards: any[] = [];
       if (usersRes.success) {
@@ -105,15 +103,8 @@ export const RecurringFormScreen = ({ navigation, route }: any) => {
             })),
           }));
           setAddedLocations(mappedLocs);
-
-          if (data.clientId) {
-            setSelectedClientId(data.clientId);
-          } else if (data.recurringLocations?.[0]?.location?.clientId) {
-            setSelectedClientId(data.recurringLocations[0].location.clientId);
-          }
         }
       } else {
-        // Default: todos los guardias asignados
         if (filteredGuards.length > 0) {
           setSelectedGuards(filteredGuards.map(g => g.id));
         }
@@ -128,18 +119,9 @@ export const RecurringFormScreen = ({ navigation, route }: any) => {
     }
   };
 
-  useEffect(() => {
-    if (selectedClientId) {
-      fetchZones(String(selectedClientId));
-    } else {
-      setZones([]);
-      setSelectedZoneId('');
-    }
-  }, [selectedClientId]);
-
-  const fetchZones = async (clientId: string) => {
+  const fetchZones = async () => {
     try {
-      const res = await getPaginatedZones({ filters: { clientId } });
+      const res = await getPaginatedZones({});
       if (res.success && res.data) {
         setZones(res.data.rows || []);
       }
@@ -243,7 +225,6 @@ export const RecurringFormScreen = ({ navigation, route }: any) => {
     try {
       const payload = {
         title,
-        clientId: selectedClientId || undefined,
         locations: addedLocations,
         guardIds: selectedGuards,
       };
@@ -267,10 +248,10 @@ export const RecurringFormScreen = ({ navigation, route }: any) => {
 
   const validateCurrentStep = () => {
     if (currentStep === 0) {
-      if (!title.trim() || !selectedClientId) {
+      if (!title.trim()) {
         dispatch(
           showToast({
-            message: 'Completa el título y selecciona un cliente',
+            message: 'Completa el título de la ruta',
             type: 'warning',
           }),
         );
@@ -302,7 +283,7 @@ export const RecurringFormScreen = ({ navigation, route }: any) => {
   if (fetching) {
     return (
       <View style={styles.loadingFull}>
-        <ActivityIndicator size="large" color={PRIMARY_COLOR} />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
         <Text style={styles.loadingText}>Sincronizando información...</Text>
       </View>
     );
@@ -311,8 +292,6 @@ export const RecurringFormScreen = ({ navigation, route }: any) => {
   const availableLocations = locations.filter(l => {
     const alreadyAdded = addedLocations.find(al => al.locationId === l.id);
     if (alreadyAdded) return false;
-    if (selectedClientId && String(l.clientId) !== String(selectedClientId))
-      return false;
     if (selectedZoneId && String(l.zoneId) !== String(selectedZoneId))
       return false;
     return true;
@@ -418,21 +397,6 @@ export const RecurringFormScreen = ({ navigation, route }: any) => {
                     leftIcon="alphabetical"
                   />
                 </View>
-
-                <View style={styles.inputGroup}>
-                  <SearchComponent
-                    label="Cliente Operativo"
-                    placeholder="Selecciona cliente..."
-                    options={clients.map(c => ({ label: c.name, value: c.id }))}
-                    value={selectedClientId}
-                    onSelect={val => {
-                      setSelectedClientId(val);
-                      setSelectedZoneId('');
-                      setAddedLocations([]);
-                      setSelectedGuards([]);
-                    }}
-                  />
-                </View>
               </View>
             )}
 
@@ -460,7 +424,6 @@ export const RecurringFormScreen = ({ navigation, route }: any) => {
                           }))}
                           value={selectedZoneId}
                           onSelect={setSelectedZoneId}
-                          disabled={!selectedClientId}
                         />
                       </View>
                       <IconButton
@@ -483,7 +446,6 @@ export const RecurringFormScreen = ({ navigation, route }: any) => {
                         }))}
                         value=""
                         onSelect={val => handleAddLocation(val as any)}
-                        disabled={!selectedClientId}
                       />
                     </View>
                   </View>
@@ -576,7 +538,7 @@ export const RecurringFormScreen = ({ navigation, route }: any) => {
                     <Icon
                       source="shield-account"
                       size={24}
-                      color={PRIMARY_COLOR}
+                      color={theme.colors.primary}
                     />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.infoBoxTitle}>
@@ -588,13 +550,7 @@ export const RecurringFormScreen = ({ navigation, route }: any) => {
                     </View>
                   </View>
                   <View style={styles.guardsGrid}>
-                    {guards
-                      .filter(
-                        g =>
-                          !selectedClientId ||
-                          String(g.clientId) === String(selectedClientId),
-                      )
-                      .map(guard => (
+                    {guards.map(guard => (
                         <ITTouchableOpacity
                           key={guard.id}
                           onPress={() => toggleGuard(guard.id)}
@@ -650,7 +606,7 @@ export const RecurringFormScreen = ({ navigation, route }: any) => {
                   <Icon
                     source="calendar-clock"
                     size={40}
-                    color={PRIMARY_COLOR}
+                    color={theme.colors.primary}
                   />
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={styles.summaryTitle}>{title}</Text>
@@ -664,11 +620,7 @@ export const RecurringFormScreen = ({ navigation, route }: any) => {
                   <View style={styles.summaryRow}>
                     <View style={styles.summaryItem}>
                       <Text style={styles.summaryLabel}>CLIENTE</Text>
-                      <Text style={styles.summaryValue}>
-                        {clients.find(
-                          c => String(c.id) === String(selectedClientId),
-                        )?.name || 'N/A'}
-                      </Text>
+                      <Text style={styles.summaryValue}>ACCESO GLOBAL</Text>
                     </View>
                     <View style={styles.summaryItem}>
                       <Text style={styles.summaryLabel}>PARADAS</Text>

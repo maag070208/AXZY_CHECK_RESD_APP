@@ -1,69 +1,73 @@
 import { get, post } from '../../../core/axios';
 
 export interface IKardexFilter {
-    userId?: string;
-    locationId?: string;
-    clientId?: string;
-    startDate?: string;
-    endDate?: string;
-    search?: string;
+  userId?: string;
+  locationId?: string;
+  startDate?: string;
+  endDate?: string;
+  search?: string;
 }
 
 export interface IKardexEntry {
+  id: string;
+  userId: string;
+  locationId: string;
+  timestamp: string;
+  latitude?: number;
+  longitude?: number;
+  notes?: string;
+  media?: { type: 'IMAGE' | 'VIDEO'; url: 'string'; description?: string }[];
+  user: {
     id: string;
-    userId: string;
-    locationId: string;
-    timestamp: string;
-    latitude?: number;
-    longitude?: number;
-    notes?: string;
-    media?: { type: 'IMAGE' | 'VIDEO', url: 'string', description?: string }[];
-    user: {
-        id: string;
-        username: string;
-        name: string;
-        lastName?: string;
-    };
-    location: {
-        id: string;
-        name: string;
-    };
-    assignmentId?: string;
-    assignment?: {
-        status: string;
-        tasks?: any[];
-    };
-    scanType: 'RECURRING' | 'ASSIGNMENT' | 'FREE';
+    username: string;
+    name: string;
+    lastName?: string;
+  };
+  location: {
+    id: string;
+    name: string;
+  };
+  assignmentId?: string;
+  assignment?: {
+    status: string;
+    tasks?: any[];
+  };
+  scanType: 'RECURRING' | 'ASSIGNMENT' | 'FREE';
 }
 
 export const getKardex = async (filters: IKardexFilter) => {
-    let query = '';
-    const params = [];
-    if (filters.userId) params.push(`userId=${filters.userId}`);
-    if (filters.locationId) params.push(`locationId=${filters.locationId}`);
-    if (filters.startDate) params.push(`startDate=${filters.startDate}`);
-    if (filters.endDate) params.push(`endDate=${filters.endDate}`);
-    
-    if (params.length > 0) {
-        query = '?' + params.join('&');
-    }
+  let query = '';
+  const params = [];
+  if (filters.userId) params.push(`userId=${filters.userId}`);
+  if (filters.locationId) params.push(`locationId=${filters.locationId}`);
+  if (filters.startDate) params.push(`startDate=${filters.startDate}`);
+  if (filters.endDate) params.push(`endDate=${filters.endDate}`);
 
-    const response = await get<IKardexEntry[]>(`/kardex${query}`);
-    return response;
+  if (params.length > 0) {
+    query = '?' + params.join('&');
+  }
+
+  const response = await get<IKardexEntry[]>(`/kardex${query}`);
+  return response;
 };
 
-export const getPaginatedKardex = async (params: { page: number, limit: number, search?: string, filters?: any }) => {
-    const response = await post<any>(`/kardex/datatable`, params);
-    console.log('response', response);
-    return response;
+export const getPaginatedKardex = async (params: {
+  page: number;
+  limit: number;
+  search?: string;
+  filters?: any;
+}) => {
+  const response = await post<any>(`/kardex/datatable`, params);
+  console.log('response', response);
+  return response;
 };
 
 export const getUsers = async () => {
-    const response = await get<any[]>('/users');
-    return { success: true, data: response.data };
+  const response = await get<any[]>('/users');
+  return { success: true, data: response.data };
 };
 
 export const getKardexById = async (id: string) => {
-    const response = await get<IKardexEntry>(`/kardex/${id}`);
-    return { success: true, data: response.data }; // Match TResult structure or adapt
+  const response = await get<IKardexEntry>(`/kardex/${id}`);
+  return { success: true, data: response.data }; // Match TResult structure or adapt
 };

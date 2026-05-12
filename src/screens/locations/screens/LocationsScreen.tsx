@@ -4,9 +4,7 @@ import { Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { FAB, Icon, IconButton, Portal, Searchbar } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { showLoader } from '../../../core/store/slices/loader.slice';
-import { getClients } from '../../clients/service/client.service';
-import { IClient } from '../../clients/type/client.types';
-import { getZonesByClient } from '../../zones/service/zone.service';
+import { getPaginatedZones } from '../../zones/service/zone.service';
 import { LocationFormModal } from '../components/LocationFormModal';
 import {
   createLocation,
@@ -42,13 +40,10 @@ export const LocationsScreen = ({ navigation, route }: any) => {
   const isAdmin = user.role === UserRole.ADMIN;
 
   // Params from navigation
-  const routeClientId = route.params?.clientId;
-  const clientName = route.params?.clientName;
   const zoneId = route.params?.zoneId;
   const zoneName = route.params?.zoneName;
 
   const [locations, setLocations] = useState<ILocation[]>([]);
-  const [clients, setClients] = useState<IClient[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -73,12 +68,6 @@ export const LocationsScreen = ({ navigation, route }: any) => {
   };
 
   const [showFilters, setShowFilters] = useState(false);
-  const [appliedClientId, setAppliedClientId] = useState<number | string>(
-    routeClientId || '',
-  );
-  const [tempClientId, setTempClientId] = useState<number | string>(
-    routeClientId || '',
-  );
   const [appliedZoneId, setAppliedZoneId] = useState<number | string>(
     zoneId || '',
   );
@@ -97,27 +86,9 @@ export const LocationsScreen = ({ navigation, route }: any) => {
   );
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    loadClients();
-  }, []);
 
-  const loadClients = async () => {
-    try {
-      const res = await getClients();
-      if (res.success) {
-        setClients(res.data || []);
-      }
-    } catch (error) {
-      console.error('Error loading clients:', error);
-    }
-  };
 
-  useEffect(() => {
-    if (routeClientId) {
-      setAppliedClientId(routeClientId);
-      setTempClientId(routeClientId);
-    }
-  }, [routeClientId]);
+
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -128,26 +99,21 @@ export const LocationsScreen = ({ navigation, route }: any) => {
 
   useEffect(() => {
     const loadZones = async () => {
-      const targetId = showFilters ? tempClientId : appliedClientId;
-      if (targetId) {
-        try {
-          const res = await getZonesByClient(targetId);
-          if (res.success) {
-            setZones(res.data || []);
-          }
-        } catch (e) {
-          console.error('Error loading zones:', e);
+      try {
+        const res = await getPaginatedZones({ page: 1, limit: 100 });
+        if (res.success) {
+          setZones(res.data?.rows || []);
         }
-      } else {
-        setZones([]);
+      } catch (e) {
+        console.error('Error loading zones:', e);
       }
     };
     loadZones();
-  }, [tempClientId, appliedClientId, showFilters]);
+  }, [showFilters]);
 
   useEffect(() => {
     fetchData(1);
-  }, [debouncedSearch, appliedStatus, appliedClientId, appliedZoneId]);
+  }, [debouncedSearch, appliedStatus, appliedZoneId]);
 
   const fetchData = async (pageNum: number, isRefreshing = false) => {
     if (pageNum === 1) {
@@ -164,7 +130,6 @@ export const LocationsScreen = ({ navigation, route }: any) => {
       limit: 20,
       filters: {
         name: debouncedSearch,
-        clientId: appliedClientId || undefined,
         zoneId: appliedZoneId || undefined,
         active:
           appliedStatus === 'ALL'
@@ -216,25 +181,22 @@ export const LocationsScreen = ({ navigation, route }: any) => {
   useFocusEffect(
     React.useCallback(() => {
       fetchData(1);
-    }, [appliedClientId, appliedZoneId]),
+    }, [appliedZoneId]),
   );
 
   const handleOpenFilters = () => {
-    setTempClientId(appliedClientId);
     setTempZoneId(appliedZoneId);
     setTempStatus(appliedStatus);
     setShowFilters(true);
   };
 
   const handleApplyFilters = () => {
-    setAppliedClientId(tempClientId);
     setAppliedZoneId(tempZoneId);
     setAppliedStatus(tempStatus);
     setShowFilters(false);
   };
 
   const handleClearFilters = () => {
-    setTempClientId('');
     setTempZoneId('');
     setTempStatus('ALL');
   };
@@ -319,10 +281,7 @@ export const LocationsScreen = ({ navigation, route }: any) => {
     }
   };
 
-  const clientOptions = clients.map(c => ({
-    label: c.name,
-    value: c.id,
-  }));
+
 
   const renderLocation = ({ item }: { item: ILocation }) => {
     const initial = item.name ? item.name.charAt(0).toUpperCase() : 'L';
@@ -353,12 +312,12 @@ export const LocationsScreen = ({ navigation, route }: any) => {
               {item.name}
             </ITText>
             <View style={styles.headerRowBadge}>
-              <ITText
+            <ITText
                 variant="labelSmall"
                 style={styles.clientText}
                 numberOfLines={1}
               >
-                {(item as any).client?.name || 'S/C'}
+                {item.zone?.name || 'Zona General'}
               </ITText>
             </View>
           </View>
@@ -383,7 +342,7 @@ export const LocationsScreen = ({ navigation, route }: any) => {
               style={styles.infoText}
               numberOfLines={1}
             >
-              {(item as any).zone?.name || 'Zona General'}
+              Ubicación activa en sector
             </ITText>
           </View>
           {item.reference && (
@@ -487,28 +446,6 @@ export const LocationsScreen = ({ navigation, route }: any) => {
                 icon="qrcode"
               />
             </ITTouchableOpacity>
-
-            <ITTouchableOpacity onPress={() => setAppliedClientId('')}>
-              <ITBadge
-                label="Todos"
-                variant={appliedClientId === '' ? 'primary' : 'surface'}
-                outline={appliedClientId !== ''}
-              />
-            </ITTouchableOpacity>
-            {clients.map(client => (
-              <ITTouchableOpacity
-                key={client.id}
-                onPress={() => setAppliedClientId(client.id)}
-              >
-                <ITBadge
-                  label={client.name}
-                  variant={
-                    appliedClientId === client.id ? 'primary' : 'surface'
-                  }
-                  outline={appliedClientId !== client.id}
-                />
-              </ITTouchableOpacity>
-            ))}
           </ScrollView>
         }
         data={locations}
@@ -529,7 +466,6 @@ export const LocationsScreen = ({ navigation, route }: any) => {
       <BulkPrintModal
         visible={showBulkModal}
         onDismiss={() => setShowBulkModal(false)}
-        initialClientId={appliedClientId}
       />
 
       <ITScreensFiltersModal
@@ -538,25 +474,7 @@ export const LocationsScreen = ({ navigation, route }: any) => {
         onApply={handleApplyFilters}
         onClear={handleClearFilters}
       >
-        <View style={styles.filterGroup}>
-          <ITText
-            variant="labelSmall"
-            weight="bold"
-            color={theme.colors.slate500}
-            style={styles.filterLabel}
-          >
-            CLIENTE
-          </ITText>
-          <SearchComponent
-            placeholder="Seleccionar Cliente"
-            options={clientOptions}
-            value={tempClientId}
-            onSelect={val => {
-              setTempClientId(val);
-              setTempZoneId('');
-            }}
-          />
-        </View>
+
 
         <View style={styles.filterGroup}>
           <ITText
@@ -568,13 +486,10 @@ export const LocationsScreen = ({ navigation, route }: any) => {
             ZONA
           </ITText>
           <SearchComponent
-            placeholder={
-              tempClientId ? 'Todas las zonas' : 'Selecciona cliente primero'
-            }
+            placeholder={'Todas las zonas'}
             options={zones.map(z => ({ label: z.name, value: z.id }))}
             value={tempZoneId}
             onSelect={setTempZoneId}
-            disabled={!tempClientId}
             label={''}
           />
         </View>
@@ -616,7 +531,6 @@ export const LocationsScreen = ({ navigation, route }: any) => {
         onSubmit={handleSubmit}
         initialData={editingLocation}
         loading={submitting}
-        preselectedClientId={appliedClientId}
       />
 
       <ITAlert

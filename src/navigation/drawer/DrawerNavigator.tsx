@@ -16,7 +16,7 @@ import { IncidentsStack } from '../../screens/assignments/stack/IncidentsStack';
 import { MaintenanceStack } from '../../screens/maintenances/stack/MaintenanceStack';
 import { RoundsStack } from '../../screens/rounds/stack/RoundsStack';
 import { SchedulesStack } from '../../screens/schedules/stack/SchedulesStack';
-import { ClientStack as ClientsStack } from '../../screens/clients/stack/ClientStack';
+
 import { ZonesStack } from '../../screens/zones/stack/ZonesStack';
 import { RecurringStack } from '../../screens/recurring/stack/RecurringStack';
 
@@ -29,7 +29,7 @@ const getActiveRouteName = (route: any): string => {
     if (route.name === 'HOME_STACK') return 'HOME_MAIN';
     if (route.name === 'LOCATIONS_STACK') return 'LOCATIONS_MAIN';
     if (route.name === 'PROFILE_SCREEN') return 'PROFILE_MAIN';
-    if (route.name === 'CLIENTS_STACK') return 'CLIENTS_MAIN';
+
     if (route.name === 'ZONES_STACK') return 'ZONES_MAIN';
     if (route.name === 'Tabs') return 'HOME_MAIN';
     return route.name;
@@ -129,13 +129,7 @@ const DrawerNavigator = () => {
         })}
       />
 
-      <Drawer.Screen
-        name="CLIENTS_STACK"
-        component={ClientsStack}
-        options={{
-          drawerItemStyle: { display: 'none' },
-        }}
-      />
+
 
       <Drawer.Screen
         name="ZONES_STACK"

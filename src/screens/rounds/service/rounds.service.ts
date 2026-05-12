@@ -8,16 +8,6 @@ export interface IRound {
   startTime: string;
   endTime?: string | null;
   status: 'IN_PROGRESS' | 'COMPLETED';
-  clientId: number;
-  client?: {
-    id: number;
-    name: string;
-    locations?: Array<{
-      id: number;
-      name: string;
-      tasks?: any[];
-    }>;
-  };
   guard: {
     id: number;
     name: string;

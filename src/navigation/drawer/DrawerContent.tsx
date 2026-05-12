@@ -99,13 +99,7 @@ const MENU_ITEMS: MenuItem[] = [
     screen: 'SCHEDULES_LIST',
     roles: ['ADMIN'],
   },
-  {
-    label: 'Clientes',
-    icon: 'office-building',
-    route: 'CLIENTS_STACK',
-    screen: 'CLIENTS_MAIN',
-    roles: ['ADMIN'],
-  },
+
   {
     label: 'Zonas',
     icon: 'layers-outline',

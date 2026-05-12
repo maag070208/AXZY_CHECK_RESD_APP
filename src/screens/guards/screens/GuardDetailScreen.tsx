@@ -348,7 +348,6 @@ export const GuardDetailScreen = () => {
             loadGuardData();
           }}
           guardId={activeGuard.id}
-          clientId={activeGuard.client?.id}
           onSuccess={() => {
             setShowModal(false);
             refreshAll();

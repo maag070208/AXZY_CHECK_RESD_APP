@@ -42,8 +42,7 @@ import {
 import { ITScreensFiltersModal } from '../../../shared/components/ITScreensFiltersModal';
 import { SearchComponent } from '../../../shared/components/SearchComponent';
 import { theme } from '../../../shared/theme/theme';
-import { getClients } from '../../clients/service/client.service';
-import { IClient } from '../../clients/type/client.types';
+
 
 export const RecurringListScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
@@ -52,7 +51,6 @@ export const RecurringListScreen = ({ navigation }: any) => {
   const isAdmin = user.role === UserRole.ADMIN;
 
   const [routes, setRoutes] = useState<any[]>([]);
-  const [clients, setClients] = useState<IClient[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -65,23 +63,8 @@ export const RecurringListScreen = ({ navigation }: any) => {
 
   // Filters
   const [showFilters, setShowFilters] = useState(false);
-  const [appliedClientId, setAppliedClientId] = useState<number | string>('');
-  const [tempClientId, setTempClientId] = useState<number | string>('');
 
-  useEffect(() => {
-    loadClients();
-  }, []);
 
-  const loadClients = async () => {
-    try {
-      const res = await getClients();
-      if (res.success) {
-        setClients(res.data || []);
-      }
-    } catch (error) {
-      console.error('Error loading clients for filter:', error);
-    }
-  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -92,7 +75,7 @@ export const RecurringListScreen = ({ navigation }: any) => {
 
   useEffect(() => {
     fetchData(1);
-  }, [debouncedSearch, appliedClientId]);
+  }, [debouncedSearch]);
 
   const fetchData = async (pageNum: number, isRefreshing = false) => {
     if (pageNum === 1) {
@@ -106,7 +89,6 @@ export const RecurringListScreen = ({ navigation }: any) => {
       limit: 20,
       filters: {
         search: debouncedSearch,
-        clientId: appliedClientId || undefined,
       },
     };
 
@@ -154,17 +136,14 @@ export const RecurringListScreen = ({ navigation }: any) => {
   );
 
   const handleOpenFilters = () => {
-    setTempClientId(appliedClientId);
     setShowFilters(true);
   };
 
   const handleApplyFilters = () => {
-    setAppliedClientId(tempClientId);
     setShowFilters(false);
   };
 
   const handleClearFilters = () => {
-    setTempClientId('');
   };
 
   const handleDelete = (item: any) => {
@@ -190,18 +169,9 @@ export const RecurringListScreen = ({ navigation }: any) => {
     );
   };
 
-  const clientOptions = clients.map(c => ({
-    label: c.name,
-    value: String(c.id),
-  }));
 
-  const activeFiltersCount = appliedClientId !== '' ? 1 : 0;
 
   const renderItem = ({ item }: { item: any }) => {
-    const clientName =
-      item.client?.name ||
-      item.recurringLocations?.[0]?.location?.client?.name ||
-      'N/A';
     const firstLocation =
       item.recurringLocations?.[0]?.location?.name || 'SIN UBICACIÓN';
     const pointsCount = item.recurringLocations?.length || 0;
@@ -246,7 +216,7 @@ export const RecurringListScreen = ({ navigation }: any) => {
               {item.title}
             </ITText>
             <ITText variant="labelSmall" weight="bold" color="#94A3B8">
-              CLIENTE: {clientName.toUpperCase()}
+              Ruta de Verificación Operativa
             </ITText>
 
             <View style={styles.locationInfo}>
@@ -334,23 +304,7 @@ export const RecurringListScreen = ({ navigation }: any) => {
             elevation={0}
           />
         }
-        filterBadges={
-          appliedClientId ? (
-            <ITTouchableOpacity
-              onPress={() => setAppliedClientId('')}
-              style={{ marginRight: 8 }}
-            >
-              <ITBadge
-                label={`Cliente: ${
-                  clients.find(c => String(c.id) === String(appliedClientId))
-                    ?.name || '...'
-                }`}
-                variant="primary"
-                onClose={() => setAppliedClientId('')}
-              />
-            </ITTouchableOpacity>
-          ) : null
-        }
+        filterBadges={null}
         data={routes}
         renderItem={renderItem}
         keyExtractor={item => String(item.id)}
@@ -374,23 +328,7 @@ export const RecurringListScreen = ({ navigation }: any) => {
         onApply={handleApplyFilters}
         onClear={handleClearFilters}
       >
-        <View style={styles.filterGroup}>
-          <ITText
-            variant="labelSmall"
-            weight="bold"
-            color="#94A3B8"
-            style={styles.filterLabel}
-          >
-            FILTRAR POR CLIENTE
-          </ITText>
-          <SearchComponent
-            label="Cliente"
-            placeholder="Seleccionar cliente"
-            options={clientOptions}
-            value={String(tempClientId)}
-            onSelect={setTempClientId}
-          />
-        </View>
+
       </ITScreensFiltersModal>
     </View>
   );

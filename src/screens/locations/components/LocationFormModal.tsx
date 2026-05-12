@@ -24,11 +24,9 @@ interface Props {
   onSubmit: (data: ILocationCreate, keepOpen?: boolean) => Promise<boolean>;
   initialData?: ILocation | null;
   loading?: boolean;
-  preselectedClientId?: string | number;
 }
 
 const validationSchema = Yup.object().shape({
-  clientId: Yup.string().required('El cliente es obligatorio'),
   zoneId: Yup.string().required('El recurrente (zona) es obligatorio'),
   name: Yup.string().required('El nombre de ubicación es obligatorio'),
 });
@@ -39,11 +37,8 @@ export const LocationFormModal = ({
   onSubmit,
   initialData,
   loading,
-  preselectedClientId,
 }: Props) => {
-  const [clients, setClients] = useState<any[]>([]);
   const [zones, setZones] = useState<any[]>([]);
-  const [loadingClients, setLoadingClients] = useState(false);
   const [loadingZones, setLoadingZones] = useState(false);
 
   const [showSuccess, setShowSuccess] = useState(false);
@@ -51,26 +46,18 @@ export const LocationFormModal = ({
 
   useEffect(() => {
     if (visible) {
-      loadClients();
+      loadZones();
     }
   }, [visible]);
 
-  const loadClients = async () => {
-    setLoadingClients(true);
-    const res = await getClients();
-    if (res.success) setClients(res.data || []);
-    setLoadingClients(false);
-  };
-
-  const loadZones = async (clientId: string) => {
+  const loadZones = async () => {
     setLoadingZones(true);
-    const res = await getPaginatedZones({ filters: { clientId } });
-    if (res.success) setZones(res.data.rows || []);
+    const res = await getPaginatedZones({ page: 1, limit: 100 });
+    if (res.success) setZones(res.data?.rows || []);
     setLoadingZones(false);
   };
 
   const initialValues = {
-    clientId: initialData?.clientId || preselectedClientId || '',
     zoneId: initialData?.zoneId || '',
     name: initialData?.name || '',
   };
@@ -120,9 +107,7 @@ export const LocationFormModal = ({
               touched,
               isValid,
             }) => {
-              useEffect(() => {
-                if (values.clientId) loadZones(values.clientId);
-              }, [values.clientId]);
+
 
               const handleSaveAndNew = async () => {
                 const success = await onSubmit(values, true);
@@ -179,35 +164,14 @@ export const LocationFormModal = ({
                           ASIGNACIÓN PRINCIPAL
                         </ITText>
 
-                        <View style={styles.inputGroup}>
-                          <SearchComponent
-                            label="CLIENTE *"
-                            placeholder="Selecciona un cliente"
-                            options={clients.map(c => ({
-                              label: c.name,
-                              value: c.id,
-                            }))}
-                            value={values.clientId}
-                            onSelect={val => {
-                              setFieldValue('clientId', val);
-                              setFieldValue('zoneId', '');
-                            }}
-                            error={touched.clientId && errors.clientId}
-                            disabled={!!initialData || loading}
-                          />
-                        </View>
+
 
                         <View style={styles.inputGroup}>
                           <SearchComponent
                             label="RECURRENTE (ZONA) *"
-                            placeholder={
-                              values.clientId
-                                ? 'Selecciona una zona'
-                                : 'Primero selecciona un cliente'
-                            }
+                            placeholder={'Selecciona una zona'}
                             disabled={
                               !!initialData ||
-                              !values.clientId ||
                               loadingZones ||
                               loading
                             }

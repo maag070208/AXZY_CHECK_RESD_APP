@@ -3,7 +3,6 @@ export interface IAuthToken {
   name: string;
   lastName: string;
   username: string;
-  clientId: string | null;
   role: string;
   active: boolean;
 
@@ -34,5 +33,4 @@ export interface IUser {
   active: boolean;
   role: IRole | string;
   schedule?: { id: string; name: string };
-  clientId?: string | null;
 }

@@ -272,7 +272,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
       ),
     );
     try {
-      const res: any = await uploadFile(uri, 'video', location?.name, roundId);
+      const res: any = await uploadFile(uri, 'video', location?.name);
       if (res.success) {
         setVideos(curr => {
           const updated = curr.map(v =>
@@ -308,7 +308,6 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
         photo.uri,
         'image',
         location?.name,
-        roundId,
       );
       if (res.success) {
         setPhotos(curr => {
@@ -477,7 +476,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
               color={theme.colors.primary}
             />
             <ITText style={styles.locText} weight="bold">
-              Punto de control verificado
+              Verificación de punto operativa
             </ITText>
           </View>
         </ITCard>

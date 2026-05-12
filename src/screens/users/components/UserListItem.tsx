@@ -95,14 +95,14 @@ export const UserListItem = ({
           <View style={styles.infoGrid}>
             <View style={styles.infoItem}>
               <View style={styles.infoIconBox}>
-                <Icon source="office-building" size={12} color={theme.colors.primary} />
+                <Icon source="map-marker" size={12} color={theme.colors.primary} />
               </View>
               <ITText
                 variant="labelSmall"
                 style={styles.infoText}
                 numberOfLines={1}
               >
-                {item.client?.name || 'Sin cliente'}
+                Acceso Global
               </ITText>
             </View>
 

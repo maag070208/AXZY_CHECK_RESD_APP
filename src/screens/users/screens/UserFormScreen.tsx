@@ -22,7 +22,7 @@ import {
 import { createUser, updateUser } from '../../users/service/user.service';
 import { UserFormStepper } from '../components/UserFormStepper';
 import { CreateUserDTO, IUser, UpdateUserDTO } from '../service/user.types';
-import { ROLE_CLIENT } from '../../../core/constants/constants';
+
 
 const UserSchema = Yup.object().shape({
   name: Yup.string().required('El nombre es requerido'),
@@ -156,7 +156,7 @@ export const UserFormScreen = () => {
             {formikProps => (
               <UserFormStepper
                 {...formikProps}
-                roles={roles.filter(r => r.name !== ROLE_CLIENT)}
+                roles={roles.filter(r => r.name !== 'RESDN')}
                 schedules={schedules}
                 saving={saving}
                 onSubmit={formikProps.handleSubmit}

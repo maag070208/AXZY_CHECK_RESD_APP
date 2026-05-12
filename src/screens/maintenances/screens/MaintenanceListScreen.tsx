@@ -37,7 +37,6 @@ export const MaintenanceListScreen = () => {
 
   // Catalogs
   const [guards, setGuards] = useState<any[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
 
   // Filters State
@@ -51,9 +50,6 @@ export const MaintenanceListScreen = () => {
   }>({ startDate: undefined, endDate: undefined });
   const [appliedGuardId, setAppliedGuardId] = useState<number | string>('ALL');
   const [appliedCategory, setAppliedCategory] = useState<string>('ALL');
-  const [appliedClientId, setAppliedClientId] = useState<number | string>(
-    'ALL',
-  );
 
   const [tempRange, setTempRange] = useState<{
     startDate: Date | undefined;
@@ -61,29 +57,19 @@ export const MaintenanceListScreen = () => {
   }>({ startDate: undefined, endDate: undefined });
   const [tempGuardId, setTempGuardId] = useState<number | string>('ALL');
   const [tempCategory, setTempCategory] = useState<string>('ALL');
-  const [tempClientId, setTempClientId] = useState<number | string>('ALL');
 
   const [openDate, setOpenDate] = useState(false);
 
   useEffect(() => {
     const fetchCatalogs = async () => {
       try {
-        const [guardsRes, clientsRes, catRes] = await Promise.all([
+        const [guardsRes, catRes] = await Promise.all([
           getCatalog('guard'),
-          getCatalog('client'),
           getCatalog('incident_category'),
         ]);
         if (guardsRes.success) {
           setGuards(
             guardsRes.data.map((g: any) => ({ label: g.value, value: g.id })),
-          );
-        }
-        if (clientsRes.success) {
-          setClients(
-            clientsRes.data.map((c: any) => ({
-              label: c.name || c.value,
-              value: c.id,
-            })),
           );
         }
         if (catRes.success) {
@@ -123,7 +109,6 @@ export const MaintenanceListScreen = () => {
         if (debouncedSearch) filters.search = debouncedSearch;
         if (appliedGuardId !== 'ALL') filters.guardId = appliedGuardId;
         if (appliedCategory !== 'ALL') filters.categoryId = appliedCategory;
-        if (appliedClientId !== 'ALL') filters.clientId = appliedClientId;
         if (appliedRange.startDate) filters.startDate = appliedRange.startDate;
         if (appliedRange.endDate) filters.endDate = appliedRange.endDate;
 
@@ -158,7 +143,6 @@ export const MaintenanceListScreen = () => {
       debouncedSearch,
       appliedGuardId,
       appliedCategory,
-      appliedClientId,
       appliedRange,
     ],
   );
@@ -184,7 +168,6 @@ export const MaintenanceListScreen = () => {
     setAppliedRange(tempRange);
     setAppliedGuardId(tempGuardId);
     setAppliedCategory(tempCategory);
-    setAppliedClientId(tempClientId);
     setShowFilters(false);
   };
 
@@ -192,7 +175,6 @@ export const MaintenanceListScreen = () => {
     setTempRange({ startDate: undefined, endDate: undefined });
     setTempGuardId('ALL');
     setTempCategory('ALL');
-    setTempClientId('ALL');
   };
 
   const getCategoryInfo = (categoryId: string) => {
@@ -289,7 +271,7 @@ export const MaintenanceListScreen = () => {
             <View style={styles.footerItem}>
               <View style={styles.footerIconBox}>
                 <Icon
-                  source="office-building"
+                  source="map-marker-radius"
                   size={12}
                   color={theme.colors.primary}
                 />
@@ -299,7 +281,7 @@ export const MaintenanceListScreen = () => {
                 style={styles.footerText}
                 numberOfLines={1}
               >
-                {item.client?.name || 'Sin cliente'}
+                {item.location?.name || 'Sector General'}
               </ITText>
             </View>
 
@@ -397,15 +379,7 @@ export const MaintenanceListScreen = () => {
           </ITTouchableOpacity>
         </View>
 
-        <View style={styles.filterGroup}>
-          <SearchComponent
-            label="Cliente"
-            placeholder="Todos los clientes"
-            options={clients}
-            value={tempClientId}
-            onSelect={setTempClientId}
-          />
-        </View>
+
 
         <View style={styles.filterGroup}>
           <SearchComponent

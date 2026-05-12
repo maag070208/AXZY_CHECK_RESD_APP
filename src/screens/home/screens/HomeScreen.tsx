@@ -243,15 +243,7 @@ export const HomeScreen = () => {
       roles: [UserRole.ADMIN],
       badge: pendingMaintenance,
     },
-    {
-      id: 'clients',
-      label: 'Clientes',
-      icon: 'office-building',
-      stack: 'CLIENTS_STACK',
-      screen: 'CLIENT_LIST',
-      color: '#0EA5E9',
-      roles: [UserRole.ADMIN],
-    },
+
     {
       id: 'locations',
       label: 'Puntos',

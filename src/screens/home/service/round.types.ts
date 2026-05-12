@@ -18,14 +18,12 @@ export interface RecurringLocation {
 export interface RecurringConfiguration {
   id: string;
   title: string;
-  clientId: string;
   recurringLocations?: RecurringLocation[];
 }
 
 export interface Round {
   id: string;
   guardId: string;
-  clientId?: string;
   status: RoundStatus;
   recurringConfigurationId?: string;
   recurringConfiguration?: RecurringConfiguration;

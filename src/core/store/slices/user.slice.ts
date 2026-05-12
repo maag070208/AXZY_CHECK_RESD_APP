@@ -8,7 +8,6 @@ export interface IUserState {
   name: string | null;
   fullName: string | null;
   role: string | null;
-  clientId: string | null;
   loginTime: string | null;
   token: string | null;
   isSignedIn: boolean;
@@ -20,7 +19,6 @@ const initialState: IUserState = {
   name: null,
   fullName: null,
   role: null,
-  clientId: null,
   loginTime: null,
   token: null,
   isSignedIn: false,
@@ -41,8 +39,11 @@ export const userSlice = createSlice({
       state.name = fullName;
       state.fullName = fullName;
       state.role = decoded.role;
-      state.clientId = decoded.clientId;
-      state.loginTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      state.loginTime = new Date().toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
 
       state.isSignedIn = true;
       state.token = action.payload;
@@ -53,7 +54,7 @@ export const userSlice = createSlice({
       state.username = null;
       state.fullName = null;
       state.role = null;
-      state.clientId = null;
+
       state.token = null;
       state.isSignedIn = false;
     },

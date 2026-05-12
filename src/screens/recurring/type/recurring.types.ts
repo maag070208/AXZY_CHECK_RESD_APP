@@ -17,11 +17,6 @@ export interface IRecurringLocation {
 export interface IRecurringConfig {
   id: number;
   title: string;
-  clientId?: number;
-  client?: {
-    id: number;
-    name: string;
-  };
   active: boolean;
   locations: IRecurringLocation[];
   guards?: {

@@ -1,77 +1,43 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Modal, Portal, IconButton } from 'react-native-paper';
+import { IconButton, Modal, Portal } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch } from 'react-redux';
-import {
-  ITText,
-  ITButton,
-  SearchComponent,
-  ITBadge,
-} from '../../../shared/components';
-import { getClients } from '../../clients/service/client.service';
-import { getZonesByClient } from '../../zones/service/zone.service';
+import { showLoader } from '../../../core/store/slices/loader.slice';
+import { showToast } from '../../../core/store/slices/toast.slice';
+import { ITButton, ITText, SearchComponent } from '../../../shared/components';
+import { theme } from '../../../shared/theme/theme';
+import { getZones } from '../../zones/service/zone.service';
 import { getPaginatedLocations } from '../service/location.service';
 import { handleLocationQRPrint } from '../utils/qr.utils';
-import { showToast } from '../../../core/store/slices/toast.slice';
-import { showLoader } from '../../../core/store/slices/loader.slice';
-import { theme } from '../../../shared/theme/theme';
 
 import { ILocation } from '../type/location.types';
 
 interface BulkPrintModalProps {
   visible: boolean;
   onDismiss: () => void;
-  initialClientId?: string | number;
 }
 
 export const BulkPrintModal: React.FC<BulkPrintModalProps> = ({
   visible,
   onDismiss,
-  initialClientId,
 }) => {
   const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
 
-  const [clients, setClients] = useState<any[]>([]);
   const [zones, setZones] = useState<any[]>([]);
-
-  const [selectedClientId, setSelectedClientId] = useState<string | number>(
-    initialClientId || '',
-  );
   const [selectedZoneId, setSelectedZoneId] = useState<string | number>('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (visible) {
-      loadClients();
-      if (initialClientId) {
-        setSelectedClientId(initialClientId);
-      }
+      loadZones();
     }
-  }, [visible, initialClientId]);
+  }, [visible]);
 
-  useEffect(() => {
-    if (selectedClientId) {
-      loadZones(selectedClientId);
-    } else {
-      setZones([]);
-      setSelectedZoneId('');
-    }
-  }, [selectedClientId]);
-
-  const loadClients = async () => {
+  const loadZones = async () => {
     try {
-      const res = await getClients();
-      if (res.success) setClients(res.data || []);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const loadZones = async (clientId: string | number) => {
-    try {
-      const res = await getZonesByClient(clientId);
+      const res = await getZones();
       if (res.success) setZones(res.data || []);
     } catch (e) {
       console.error(e);
@@ -79,11 +45,6 @@ export const BulkPrintModal: React.FC<BulkPrintModalProps> = ({
   };
 
   const handlePrint = async () => {
-    if (!selectedClientId) {
-      dispatch(showToast({ message: 'Selecciona un cliente', type: 'error' }));
-      return;
-    }
-
     setLoading(true);
     dispatch(showLoader(true));
 
@@ -92,7 +53,6 @@ export const BulkPrintModal: React.FC<BulkPrintModalProps> = ({
         page: 1,
         limit: 1000,
         filters: {
-          clientId: selectedClientId,
           zoneId: selectedZoneId || undefined,
           active: true,
         },
@@ -154,33 +114,15 @@ export const BulkPrintModal: React.FC<BulkPrintModalProps> = ({
 
           <View style={styles.field}>
             <ITText variant="labelMedium" weight="bold" style={styles.label}>
-              CLIENTE
-            </ITText>
-            <SearchComponent
-              placeholder="Seleccionar Cliente"
-              options={clients.map(c => ({ label: c.name, value: c.id }))}
-              value={selectedClientId}
-              onSelect={val => {
-                setSelectedClientId(val);
-                setSelectedZoneId('');
-              }}
-            />
-          </View>
-
-          <View style={styles.field}>
-            <ITText variant="labelMedium" weight="bold" style={styles.label}>
               ZONA (OPCIONAL)
             </ITText>
             <SearchComponent
-              placeholder={
-                selectedClientId
-                  ? 'Todas las zonas'
-                  : 'Selecciona cliente primero'
-              }
+              placeholder={'Todas las zonas'}
               options={zones.map(z => ({ label: z.name, value: z.id }))}
               value={selectedZoneId}
               onSelect={setSelectedZoneId}
-              disabled={!selectedClientId}
+              disabled={false}
+              label={''}
             />
           </View>
         </View>

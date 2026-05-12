@@ -179,9 +179,7 @@ export const RoundDetailScreen = ({ route }: any) => {
     const expectedLocs =
       (data.round as any).recurringConfiguration?.recurringLocations?.map(
         (rl: any) => rl.location,
-      ) ||
-      data.round.client?.locations ||
-      [];
+      ) || [];
     const missingLocs = expectedLocs.filter(
       (l: any) => !visitedLocations.has(String(l.id)),
     );
@@ -516,7 +514,7 @@ export const RoundDetailScreen = ({ route }: any) => {
 
   if (!data) return null;
 
-  const routeTitle = data.round.client?.name || 'Ronda General';
+  const routeTitle = data.round.title || 'Ronda Operativa';
 
   return (
     <View style={styles.container}>

@@ -32,11 +32,6 @@ const { width } = Dimensions.get('window');
 const validationSchema = Yup.object().shape({
   categoryId: Yup.string().required('Selecciona una categoría'),
   typeId: Yup.string().required('Selecciona el tipo de mantenimiento'),
-  clientId: Yup.string().when('isAdmin', {
-    is: true,
-    then: schema => schema.required('El cliente es obligatorio'),
-    otherwise: schema => schema.optional(),
-  }),
   description: Yup.string().optional(),
 });
 
@@ -52,26 +47,19 @@ export const MaintenanceReportScreen = () => {
 
   const [categories, setCategories] = useState<any[]>([]);
   const [allTypes, setAllTypes] = useState<any[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
   const [media, setMedia] = useState<MediaItem[]>([]);
 
   const fetchCatalogs = async () => {
     try {
-      const [catRes, typeRes, clientsRes] = await Promise.all([
+      const [catRes, typeRes] = await Promise.all([
         getCatalog('incident_category'),
         getCatalog('incident_type'),
-        getCatalog('client'),
       ]);
 
       if (catRes.success) {
         setCategories(catRes.data.filter((c: any) => c.type === 'MAINTENANCE'));
       }
       if (typeRes.success) setAllTypes(typeRes.data);
-      if (clientsRes.success) {
-        setClients(
-          clientsRes.data.map((c: any) => ({ label: c.name, value: c.id })),
-        );
-      }
     } catch (e) {
       console.error('Error fetching catalogs:', e);
     }
@@ -99,8 +87,7 @@ export const MaintenanceReportScreen = () => {
     dispatch(showLoader(true));
 
     const selectedType = allTypes.find(t => t.id === values.typeId);
-    const finalLocationId =
-      route.params?.location?.id || roundId || values.clientId;
+    const finalLocationId = route.params?.location?.id || roundId;
 
     const sendReport = async (position?: any) => {
       try {
@@ -113,7 +100,6 @@ export const MaintenanceReportScreen = () => {
           typeId: values.typeId,
           latitude: position?.coords?.latitude,
           longitude: position?.coords?.longitude,
-          clientId: values.clientId || undefined,
           guardId: user.id,
         });
 
@@ -151,7 +137,6 @@ export const MaintenanceReportScreen = () => {
         initialValues={{
           categoryId: null,
           typeId: null,
-          clientId: user.clientId || '',
           description: '',
           isAdmin: user.role === UserRole.ADMIN,
         }}
@@ -166,20 +151,6 @@ export const MaintenanceReportScreen = () => {
             <ITText variant="bodyMedium" style={styles.subtitle}>
               Detalles del mantenimiento
             </ITText>
-
-            {values.isAdmin && (
-              <View style={styles.section}>
-                <ITText variant="labelLarge" weight="bold" style={styles.label}>
-                  SELECCIONAR CLIENTE
-                </ITText>
-                <SearchComponent
-                  label="Cliente"
-                  options={clients}
-                  value={values.clientId}
-                  onSelect={val => setFieldValue('clientId', val)}
-                />
-              </View>
-            )}
 
             <ITCategorySelector
               categories={categories}

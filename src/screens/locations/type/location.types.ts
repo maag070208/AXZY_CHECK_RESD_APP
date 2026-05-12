@@ -1,8 +1,6 @@
 export interface ILocation {
   id: string;
   name: string;
-  clientId: string;
-  client?: any;
   zoneId: string;
   zone?: any;
   reference?: string;
@@ -10,7 +8,6 @@ export interface ILocation {
 }
 
 export interface ILocationCreate {
-  clientId: string;
   zoneId: string;
   name: string;
   reference?: string;

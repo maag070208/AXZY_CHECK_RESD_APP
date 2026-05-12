@@ -57,7 +57,6 @@ export const IncidentReportScreen = () => {
 
   const [categories, setCategories] = useState<CatalogItem[]>([]);
   const [allTypes, setAllTypes] = useState<CatalogItem[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [cameraVisible, setCameraVisible] = useState(false);
   const [cameraMode, setCameraMode] = useState<'photo' | 'video'>('photo');
@@ -65,20 +64,14 @@ export const IncidentReportScreen = () => {
   const validationSchema = Yup.object().shape({
     categoryId: Yup.string().required('Selecciona una categoría'),
     typeId: Yup.string().required('Selecciona el tipo de incidencia'),
-    clientId: Yup.string().when('isAdmin', {
-      is: true,
-      then: schema => schema.required('El cliente es obligatorio'),
-      otherwise: schema => schema.optional(),
-    }),
     description: Yup.string().optional(),
   });
 
   const fetchCatalogs = async () => {
     try {
-      const [catRes, typeRes, clientsRes] = await Promise.all([
+      const [catRes, typeRes] = await Promise.all([
         getCatalog('incident_category'),
         getCatalog('incident_type'),
-        getCatalog('client'),
       ]);
 
       if (catRes.success && catRes.data) {
@@ -88,14 +81,6 @@ export const IncidentReportScreen = () => {
       }
       if (typeRes.success && typeRes.data) {
         setAllTypes(typeRes.data);
-      }
-      if (clientsRes.success && clientsRes.data) {
-        setClients(
-          clientsRes.data.map((c: any) => ({
-            label: c.name || c.value,
-            value: c.id,
-          })),
-        );
       }
     } catch (e) {
       console.error('Error fetching catalogs:', e);
@@ -236,9 +221,7 @@ export const IncidentReportScreen = () => {
 
     const selectedType = allTypes.find(t => t.id === values.typeId);
 
-    // API REQUIRES locationId. Fallback chain: params.location.id -> params.roundId -> values.clientId
-    const finalLocationId =
-      route.params?.location?.id || roundId || values.clientId;
+    const finalLocationId = route.params?.location?.id || roundId;
 
     const sendReport = async (position?: any) => {
       console.log(
@@ -255,7 +238,6 @@ export const IncidentReportScreen = () => {
           typeId: values.typeId,
           latitude: position?.coords?.latitude,
           longitude: position?.coords?.longitude,
-          clientId: values.clientId || undefined,
           guardId: user.id,
           roundId: roundId || undefined,
         });
@@ -310,9 +292,7 @@ export const IncidentReportScreen = () => {
         initialValues={{
           categoryId: null,
           typeId: null,
-          clientId: user.clientId || '',
           description: '',
-          isAdmin: user.role === UserRole.ADMIN,
         }}
         validationSchema={validationSchema}
         onSubmit={onFormSubmit}
@@ -328,30 +308,6 @@ export const IncidentReportScreen = () => {
             >
               Completa los detalles de la incidencia
             </ITText>
-
-            {user.role === UserRole.ADMIN && (
-              <View style={styles.section}>
-                <ITText variant="labelLarge" weight="bold" style={styles.label}>
-                  SELECCIONAR CLIENTE
-                </ITText>
-                <SearchComponent
-                  label="Cliente"
-                  placeholder="Selecciona un cliente..."
-                  options={clients}
-                  value={values.clientId}
-                  onSelect={val => setFieldValue('clientId', val)}
-                />
-                {errors.clientId && touched.clientId && (
-                  <ITText
-                    variant="bodySmall"
-                    color={theme.colors.error}
-                    style={{ marginTop: 4 }}
-                  >
-                    {errors.clientId as string}
-                  </ITText>
-                )}
-              </View>
-            )}
 
             <ITCategorySelector
               categories={categories}
@@ -417,11 +373,7 @@ export const IncidentReportScreen = () => {
               onPress={() => handleSubmit()}
               loading={loading}
               disabled={
-                loading ||
-                isUploading ||
-                !values.categoryId ||
-                !values.typeId ||
-                (user.role === UserRole.ADMIN && !values.clientId)
+                loading || isUploading || !values.categoryId || !values.typeId
               }
               style={{ marginTop: 20 }}
             />

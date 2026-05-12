@@ -12,14 +12,10 @@ import {
 import { Icon, IconButton } from 'react-native-paper';
 import * as Yup from 'yup';
 import { ITButton, ITInput, ITText } from '../../../shared/components';
-import { SearchComponent } from '../../../shared/components/SearchComponent';
 import { theme } from '../../../shared/theme/theme';
-import { getClients } from '../../clients/service/client.service';
-import { IClient } from '../../clients/type/client.types';
 
 const ZoneSchema = Yup.object().shape({
   name: Yup.string().required('El nombre de la zona es requerido'),
-  clientId: Yup.string().required('Debes seleccionar un cliente'),
 });
 
 interface Props {
@@ -37,28 +33,7 @@ export const ZoneFormModal = ({
   loading,
   initialData,
 }: Props) => {
-  const [clients, setClients] = useState<IClient[]>([]);
-  const [fetchingClients, setFetchingClients] = useState(false);
 
-  useEffect(() => {
-    if (visible) {
-      loadClients();
-    }
-  }, [visible]);
-
-  const loadClients = async () => {
-    setFetchingClients(true);
-    try {
-      const res = await getClients();
-      if (res.success) {
-        setClients(res.data || []);
-      }
-    } catch (error) {
-      console.error('Error loading clients for zone modal:', error);
-    } finally {
-      setFetchingClients(false);
-    }
-  };
 
   return (
     <RNModal
@@ -95,7 +70,6 @@ export const ZoneFormModal = ({
           <Formik
             initialValues={{
               name: initialData?.name || '',
-              clientId: initialData?.clientId || '',
             }}
             enableReinitialize
             validationSchema={ZoneSchema}
@@ -119,29 +93,7 @@ export const ZoneFormModal = ({
                   contentContainerStyle={styles.scrollContent}
                 >
                   <View style={styles.formContent}>
-                    <View style={styles.section}>
-                      <ITText
-                        variant="labelSmall"
-                        weight="bold"
-                        color={theme.colors.slate500}
-                        style={styles.sectionLabel}
-                      >
-                        ASIGNACIÓN DE CLIENTE
-                      </ITText>
-                      <View style={styles.inputGroup}>
-                        <SearchComponent
-                          label="CLIENTE *"
-                          placeholder="Selecciona un cliente"
-                          options={clients.map(c => ({
-                            label: c.name,
-                            value: c.id,
-                          }))}
-                          value={values.clientId}
-                          onSelect={val => setFieldValue('clientId', val)}
-                          error={touched.clientId && errors.clientId}
-                        />
-                      </View>
-                    </View>
+
 
                     <View style={styles.section}>
                       <ITText

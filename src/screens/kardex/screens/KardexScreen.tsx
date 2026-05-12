@@ -54,9 +54,6 @@ export const KardexScreen = () => {
   const [locationsCatalog, setLocationsCatalog] = useState<
     { label: string; value: number }[]
   >([]);
-  const [clientsCatalog, setClientsCatalog] = useState<
-    { label: string; value: number }[]
-  >([]);
 
   // Filters State
   const [showFilters, setShowFilters] = useState(false);
@@ -80,10 +77,9 @@ export const KardexScreen = () => {
 
   const fetchCatalogs = async () => {
     try {
-      const [uRes, lRes, cRes] = await Promise.all([
+      const [uRes, lRes] = await Promise.all([
         getCatalog('guard'),
         getLocations(),
-        getCatalog('client'),
       ]);
 
       if (uRes.success && Array.isArray(uRes.data)) {
@@ -100,15 +96,6 @@ export const KardexScreen = () => {
           lRes.data.map((l: any) => ({
             label: l.name,
             value: l.id,
-          })),
-        );
-      }
-
-      if (cRes.success && Array.isArray(cRes.data)) {
-        setClientsCatalog(
-          cRes.data.map((c: any) => ({
-            label: c.value,
-            value: c.id,
           })),
         );
       }
@@ -245,13 +232,6 @@ export const KardexScreen = () => {
     setTempFilters({});
     setTempRange({ startDate: undefined, endDate: undefined });
   };
-
-  const activeFiltersCount = [
-    appliedRange.startDate ? 1 : 0,
-    appliedFilters.userId ? 1 : 0,
-    appliedFilters.locationId ? 1 : 0,
-    appliedFilters.clientId ? 1 : 0,
-  ].reduce((a, b) => a + b, 0);
 
   const getScanTypeInfo = (type: string) => {
     switch (type) {
@@ -441,60 +421,6 @@ export const KardexScreen = () => {
             iconColor={theme.colors.outline}
           />
         </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.clientsScroll}
-        >
-          <TouchableOpacity
-            style={[
-              styles.clientBadge,
-              !appliedFilters.clientId && styles.clientBadgeActive,
-            ]}
-            onPress={() => {
-              setAppliedFilters(prev => ({ ...prev, clientId: undefined }));
-              setPage(1);
-            }}
-          >
-            <ITText
-              variant="labelMedium"
-              weight="bold"
-              color={
-                !appliedFilters.clientId ? '#FFFFFF' : theme.colors.outline
-              }
-            >
-              Todos
-            </ITText>
-          </TouchableOpacity>
-          {clientsCatalog.map(client => {
-            const isActive = appliedFilters.clientId === String(client.value);
-            return (
-              <TouchableOpacity
-                key={client.value}
-                style={[
-                  styles.clientBadge,
-                  isActive && styles.clientBadgeActive,
-                ]}
-                onPress={() => {
-                  setAppliedFilters(prev => ({
-                    ...prev,
-                    clientId: String(client.value),
-                  }));
-                  setPage(1);
-                }}
-              >
-                <ITText
-                  variant="labelMedium"
-                  weight="bold"
-                  color={isActive ? '#FFFFFF' : theme.colors.outline}
-                >
-                  {client.label}
-                </ITText>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
       </View>
 
       <FlatList
@@ -647,29 +573,6 @@ export const KardexScreen = () => {
                   setTempFilters({
                     ...tempFilters,
                     locationId: val ? Number(val) : undefined,
-                  })
-                }
-              />
-            </View>
-
-            <View style={styles.filterGroup}>
-              <ITText
-                variant="labelSmall"
-                weight="bold"
-                color={theme.colors.outline}
-                style={styles.filterLabel}
-              >
-                POR CLIENTE
-              </ITText>
-              <SearchComponent
-                label="Cliente"
-                placeholder="Seleccionar cliente"
-                options={clientsCatalog}
-                value={tempFilters.clientId}
-                onSelect={val =>
-                  setTempFilters({
-                    ...tempFilters,
-                    clientId: val ? String(val) : undefined,
                   })
                 }
               />

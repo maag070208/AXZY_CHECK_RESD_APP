@@ -1,4 +1,4 @@
-import { IClient } from '../../clients/service/client.types';
+
 
 export interface IRole {
   id: string;
@@ -30,10 +30,10 @@ export interface IUser {
   deletedAt: string | null;
   isLoggedIn: boolean;
   scheduleId: string | null;
-  clientId: string | null;
+
   roleId: string;
   role: IRole;
-  client?: IClient;
+
   schedule?: ISchedule;
   _count?: {
     rounds: number;
@@ -48,7 +48,7 @@ export interface CreateUserDTO {
   username: string;
   password?: string;
   roleId: string;
-  clientId?: string;
+
   scheduleId?: string;
 }
 
@@ -57,7 +57,7 @@ export interface UpdateUserDTO {
   lastName?: string;
   username?: string;
   roleId?: string;
-  clientId?: string;
+
   scheduleId?: string;
   active?: boolean;
 }

@@ -27,9 +27,7 @@ import {
   createZone,
   updateZone,
 } from '../service/zone.service';
-import { getClients } from '../../clients/service/client.service';
 import { IZone } from '../type/zone.types';
-import { IClient } from '../../clients/type/client.types';
 
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../../core/store/redux.config';
@@ -46,7 +44,6 @@ export const ZonesScreen = ({ navigation }: any) => {
   const isAdmin = user.role === UserRole.ADMIN;
 
   const [zones, setZones] = useState<IZone[]>([]);
-  const [clients, setClients] = useState<IClient[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -59,27 +56,12 @@ export const ZonesScreen = ({ navigation }: any) => {
 
   // Filters
   const [showFilters, setShowFilters] = useState(false);
-  const [appliedClientId, setAppliedClientId] = useState<number | string>('');
-  const [tempClientId, setTempClientId] = useState<number | string>('');
 
   const [modalVisible, setModalVisible] = useState(false);
   const [editingZone, setEditingZone] = useState<IZone | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    loadClients();
-  }, []);
 
-  const loadClients = async () => {
-    try {
-      const res = await getClients();
-      if (res.success) {
-        setClients(res.data || []);
-      }
-    } catch (error) {
-      console.error('Error loading clients for filter:', error);
-    }
-  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -90,7 +72,7 @@ export const ZonesScreen = ({ navigation }: any) => {
 
   useEffect(() => {
     fetchData(1);
-  }, [debouncedSearch, appliedClientId]);
+  }, [debouncedSearch]);
 
   const fetchData = async (pageNum: number, isRefreshing = false) => {
     if (pageNum === 1) {
@@ -107,7 +89,6 @@ export const ZonesScreen = ({ navigation }: any) => {
       limit: 20,
       filters: {
         search: debouncedSearch,
-        clientId: appliedClientId || undefined,
       },
     };
 
@@ -156,17 +137,15 @@ export const ZonesScreen = ({ navigation }: any) => {
   );
 
   const handleOpenFilters = () => {
-    setTempClientId(appliedClientId);
     setShowFilters(true);
   };
 
   const handleApplyFilters = () => {
-    setAppliedClientId(tempClientId);
     setShowFilters(false);
   };
 
   const handleClearFilters = () => {
-    setTempClientId('');
+    setSearch('');
   };
 
   const handleCreate = () => {
@@ -241,12 +220,7 @@ export const ZonesScreen = ({ navigation }: any) => {
     }
   };
 
-  const clientOptions = clients.map(c => ({
-    label: c.name,
-    value: String(c.id),
-  }));
 
-  const activeFiltersCount = appliedClientId !== '' ? 1 : 0;
 
   const renderItem = ({ item }: { item: IZone }) => {
     const isActive = item.active;
@@ -275,16 +249,6 @@ export const ZonesScreen = ({ navigation }: any) => {
                   {item.name}
                 </ITText>
                 <View style={styles.headerMeta}>
-                  <View style={styles.metaChip}>
-                    <Icon
-                      source="office-building"
-                      size={12}
-                      color={theme.colors.slate400}
-                    />
-                    <ITText variant="labelSmall" color={theme.colors.slate500}>
-                      {item.client?.name || 'Sin Cliente'}
-                    </ITText>
-                  </View>
                 </View>
               </View>
             </View>
@@ -358,23 +322,7 @@ export const ZonesScreen = ({ navigation }: any) => {
             elevation={0}
           />
         }
-        filterBadges={
-          appliedClientId ? (
-            <ITTouchableOpacity
-              onPress={() => setAppliedClientId('')}
-              style={{ marginRight: 8 }}
-            >
-              <ITBadge
-                label={`Cliente: ${
-                  clients.find(c => String(c.id) === String(appliedClientId))
-                    ?.name || '...'
-                }`}
-                variant="primary"
-                onClose={() => setAppliedClientId('')}
-              />
-            </ITTouchableOpacity>
-          ) : null
-        }
+        filterBadges={null}
         data={zones}
         renderItem={renderItem}
         keyExtractor={item => String(item.id)}
@@ -405,15 +353,8 @@ export const ZonesScreen = ({ navigation }: any) => {
             color="#94A3B8"
             style={styles.filterLabel}
           >
-            FILTRAR POR CLIENTE
+            NO HAY FILTROS DISPONIBLES
           </ITText>
-          <SearchComponent
-            label="Cliente"
-            placeholder="Seleccionar cliente"
-            options={clientOptions}
-            value={String(tempClientId)}
-            onSelect={setTempClientId}
-          />
         </View>
       </ITScreensFiltersModal>
 

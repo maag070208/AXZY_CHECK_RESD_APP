@@ -25,7 +25,6 @@ import { theme } from '../../../shared/theme/theme';
 
 export const RoundsListScreen = ({ navigation, route }: any) => {
   const dispatch = useDispatch();
-  const routeClientId = route.params?.clientId;
   const token = useSelector((state: any) => state.userState.token);
 
   const [rounds, setRounds] = useState<IRound[]>([]);
@@ -43,9 +42,8 @@ export const RoundsListScreen = ({ navigation, route }: any) => {
 
   const [appliedFilters, setAppliedFilters] = useState<{
     guardId?: number;
-    clientId?: any;
     status?: string;
-  }>({ clientId: routeClientId, status: 'all' });
+  }>({ status: 'all' });
   const [appliedDate, setAppliedDate] = useState<Date | undefined>(undefined);
 
   const [tempFilters, setTempFilters] = useState<{ guardId?: number }>({});
@@ -231,7 +229,7 @@ export const RoundsListScreen = ({ navigation, route }: any) => {
               </View>
               <View style={styles.infoItem}>
                 <Icon
-                  source="office-building"
+                  source="map-marker-radius"
                   size={14}
                   color={theme.colors.primary}
                 />
@@ -241,7 +239,7 @@ export const RoundsListScreen = ({ navigation, route }: any) => {
                   numberOfLines={1}
                   style={{ flex: 1 }}
                 >
-                  {item.client?.name || 'S/C'}
+                  Recorrido operativo en sector
                 </ITText>
               </View>
             </View>

@@ -34,7 +34,6 @@ import {
   SearchComponent,
 } from '../../../shared/components';
 import { theme } from '../../../shared/theme/theme';
-import { getClients } from '../../clients/service/client.service';
 import { getSchedules } from '../../schedules/service/schedules.service';
 import {
   getPaginatedUsers,
@@ -60,18 +59,11 @@ export const GuardListScreen = () => {
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // Filters
-  const [showFilters, setShowFilters] = useState(false);
-  const [appliedClientId, setAppliedClientId] = useState<string | number>(
-    'ALL',
-  );
-  const [tempClientId, setTempClientId] = useState<string | number>('ALL');
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
 
   // Reassignment States
   const [changingGuard, setChangingGuard] = useState<any>(null);
-  const [showClientModal, setShowClientModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [clients, setClients] = useState<any[]>([]);
   const [schedules, setSchedules] = useState<any[]>([]);
   const [updating, setUpdating] = useState(false);
 
@@ -110,7 +102,6 @@ export const GuardListScreen = () => {
           filters: {
             name: debouncedSearch,
             role: roleFilter,
-            ...(appliedClientId !== 'ALL' && { clientId: appliedClientId }),
           },
         };
 
@@ -138,15 +129,10 @@ export const GuardListScreen = () => {
         dispatch(showLoader(false));
       }
     },
-    [debouncedSearch, user.role, appliedClientId, selectedRole, dispatch],
+    [debouncedSearch, user.role, selectedRole, dispatch],
   );
 
   useEffect(() => {
-    getClients().then(res => {
-      if (res.success && res.data) {
-        setClients(res.data.map((c: any) => ({ label: c.name, value: c.id })));
-      }
-    });
     getSchedules().then(res => res.success && setSchedules(res.data || []));
   }, []);
 
@@ -173,16 +159,11 @@ export const GuardListScreen = () => {
     // navigateToScreen('GUARDS_STACK', 'GUARD_DETAIL', { guard });
   };
 
-  const handleApplyFilters = () => {
-    setAppliedClientId(tempClientId);
-    setShowFilters(false);
-  };
-
   const handleClearFilters = () => {
-    setTempClientId('ALL');
+    setSearch('');
   };
 
-  const activeFiltersCount = appliedClientId !== 'ALL' ? 1 : 0;
+  const activeFiltersCount = 0;
 
   const handleUpdate = async (id: number, data: any) => {
     setUpdating(true);
@@ -198,8 +179,6 @@ export const GuardListScreen = () => {
       Toast.show({ type: 'error', text1: 'Error de red' });
     } finally {
       setUpdating(false);
-      setChangingGuard(null);
-      setShowClientModal(false);
       setShowScheduleModal(false);
     }
   };
@@ -279,20 +258,6 @@ export const GuardListScreen = () => {
                 : 'Sin Horario'}
             </ITText>
           </View>
-          <View style={styles.infoItem}>
-            <Icon
-              source="office-building"
-              size={16}
-              color={theme.colors.slate500}
-            />
-            <ITText
-              variant="bodySmall"
-              style={styles.infoText}
-              numberOfLines={1}
-            >
-              {item.client ? item.client.name : 'Sin Cliente Asignado'}
-            </ITText>
-          </View>
         </View>
 
         <View style={styles.cardFooter}>
@@ -308,20 +273,7 @@ export const GuardListScreen = () => {
               size={18}
               color={theme.colors.primary}
             />
-            <ITText style={styles.footerButtonText}>Horario</ITText>
-          </ITTouchableOpacity>
-
-          <View style={styles.dividerVertical} />
-
-          <ITTouchableOpacity
-            style={styles.footerButton}
-            onPress={() => {
-              setChangingGuard(item);
-              setShowClientModal(true);
-            }}
-          >
-            <Icon source="domain" size={18} color={theme.colors.primary} />
-            <ITText style={styles.footerButtonText}>Cliente</ITText>
+            <ITText style={styles.footerButtonText}>Cambiar Horario</ITText>
           </ITTouchableOpacity>
         </View>
       </ITCard>
@@ -360,70 +312,7 @@ export const GuardListScreen = () => {
 
       {/* REASSIGNMENT MODALS */}
       <Portal>
-        <Dialog
-          visible={showClientModal}
-          onDismiss={() => setShowClientModal(false)}
-          style={styles.reassignDialog}
-        >
-          <Dialog.Title>
-            <ITText variant="headlineSmall" weight="bold">
-              Reasignar Cliente
-            </ITText>
-          </Dialog.Title>
-          <Dialog.Content>
-            {updating ? (
-              <ActivityIndicator
-                color={theme.colors.primary}
-                style={{ margin: 20 }}
-              />
-            ) : (
-              <FlatList
-                data={clients.filter(c => c.value !== 'ALL')}
-                keyExtractor={item => item.value.toString()}
-                renderItem={({ item }) => {
-                  const isSelected = changingGuard?.client?.id === item.value;
-                  return (
-                    <List.Item
-                      title={item.label}
-                      onPress={() =>
-                        handleUpdate(changingGuard.id, { clientId: item.value })
-                      }
-                      left={props => (
-                        <List.Icon
-                          {...props}
-                          icon="domain"
-                          color={
-                            isSelected
-                              ? theme.colors.primary
-                              : theme.colors.slate500
-                          }
-                        />
-                      )}
-                      right={props =>
-                        isSelected ? (
-                          <List.Icon
-                            {...props}
-                            icon="check"
-                            color={theme.colors.primary}
-                          />
-                        ) : null
-                      }
-                      titleStyle={
-                        isSelected
-                          ? { color: theme.colors.primary, fontWeight: 'bold' }
-                          : { color: theme.colors.slate900 }
-                      }
-                    />
-                  );
-                }}
-                ItemSeparatorComponent={() => (
-                  <Divider style={{ backgroundColor: '#F1F5F9' }} />
-                )}
-                style={{ maxHeight: 400 }}
-              />
-            )}
-          </Dialog.Content>
-        </Dialog>
+
 
         <Dialog
           visible={showScheduleModal}
@@ -531,18 +420,9 @@ export const GuardListScreen = () => {
                 color={theme.colors.slate500}
                 style={styles.filterLabel}
               >
-                FILTRAR POR CLIENTE
+                FILTROS DISPONIBLES
               </ITText>
-              <SearchComponent
-                label="Cliente"
-                placeholder="Todos los clientes"
-                options={[
-                  { label: 'Todos los clientes', value: 'ALL' },
-                  ...clients,
-                ]}
-                value={tempClientId}
-                onSelect={setTempClientId}
-              />
+              <ITText variant="bodySmall">No hay filtros de cliente en modo Single-Tenant.</ITText>
             </View>
           </ScrollView>
 

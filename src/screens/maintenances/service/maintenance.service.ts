@@ -10,7 +10,6 @@ export const createMaintenance = async (data: {
   typeId?: string;
   latitude?: number;
   longitude?: number;
-  clientId?: string;
   guardId?: string;
 }) => {
   try {
@@ -27,15 +26,21 @@ export const createMaintenance = async (data: {
     if (data.typeId) payload.typeId = data.typeId;
     if (data.latitude) payload.latitude = data.latitude;
     if (data.longitude) payload.longitude = data.longitude;
-    if (data.clientId) payload.clientId = data.clientId;
+
     if (data.guardId) payload.guardId = data.guardId;
 
-    console.log('[MaintenanceService] POST /maintenance payload:', JSON.stringify(payload, null, 2));
+    console.log(
+      '[MaintenanceService] POST /maintenance payload:',
+      JSON.stringify(payload, null, 2),
+    );
 
     const response = await post('/maintenance', payload);
-    
-    console.log('[MaintenanceService] POST /maintenance response:', JSON.stringify(response, null, 2));
-    
+
+    console.log(
+      '[MaintenanceService] POST /maintenance response:',
+      JSON.stringify(response, null, 2),
+    );
+
     return response;
   } catch (error: any) {
     console.error('[MaintenanceService] POST /maintenance Exception:', error);
