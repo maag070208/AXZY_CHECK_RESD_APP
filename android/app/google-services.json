@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "680798488632",
+    "project_id": "axzycheckappurbicedro",
+    "storage_bucket": "axzycheckappurbicedro.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:680798488632:android:366f0d948d3203cf6e3ecd",
+        "android_client_info": {
+          "package_name": "com.axzydev.resd.checkapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDdvNkmKfknzlZyZvHEVrzt_imPxIff4zE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

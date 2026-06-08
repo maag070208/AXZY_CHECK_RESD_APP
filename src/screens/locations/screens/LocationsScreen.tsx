@@ -1,0 +1,565 @@
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { FAB, Icon, Searchbar } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { showLoader } from '../../../core/store/slices/loader.slice';
+import { LocationFormModal } from '../components/LocationFormModal';
+import {
+  createLocation,
+  deleteLocation,
+  getPaginatedLocations,
+  updateLocation,
+} from '../service/location.service';
+import { ILocation } from '../type/location.types';
+
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '../../../core/store/redux.config';
+import { showToast } from '../../../core/store/slices/toast.slice';
+import { UserRole } from '../../../core/types/IUser';
+import {
+  ITAlert,
+  ITBadge,
+  ITScreenDatatableLayout,
+  ITText,
+  ITTouchableOpacity,
+} from '../../../shared/components';
+import { theme } from '../../../shared/theme/theme';
+import { handleLocationQRPrint } from '../utils/qr.utils';
+import { BulkPrintModal } from '../modal/BulkPrintModal';
+
+export const LocationsScreen = ({ navigation, route }: any) => {
+  const insets = useSafeAreaInsets();
+  const dispatch = useDispatch();
+  const user = useSelector((state: RootState) => state.userState);
+  const isAdmin = user.role === UserRole.ADMIN;
+
+  const zoneId = route.params?.zoneId;
+  const zoneName = route.params?.zoneName;
+
+  const [locations, setLocations] = useState<ILocation[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  const [printing, setPrinting] = useState(false);
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [appliedZoneId, setAppliedZoneId] = useState<number | string>(zoneId || '');
+  const [appliedStatus, setAppliedStatus] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingLocation, setEditingLocation] = useState<ILocation | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handlePrintQR = async (item: ILocation) => {
+    dispatch(showLoader(true));
+    const success = await handleLocationQRPrint([item.id], `QR_${item.name}`);
+    dispatch(showLoader(false));
+    if (!success) {
+      dispatch(showToast({ message: 'Error al generar QR', type: 'error' }));
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    fetchData(1);
+  }, [debouncedSearch, appliedStatus, appliedZoneId]);
+
+  const fetchData = async (pageNum: number, isRefreshing = false) => {
+    if (pageNum === 1) {
+      if (!isRefreshing) {
+        setLoading(true);
+        dispatch(showLoader(true));
+      }
+    } else {
+      setLoadingMore(true);
+    }
+
+    const params = {
+      page: pageNum,
+      limit: 20,
+      filters: {
+        name: debouncedSearch,
+        zoneId: appliedZoneId || undefined,
+        active:
+          appliedStatus === 'ALL'
+            ? undefined
+            : appliedStatus === 'ACTIVE'
+            ? true
+            : false,
+      },
+    };
+
+    try {
+      const res = await getPaginatedLocations(params);
+      if (res.success && res.data) {
+        const newRows = res.data.rows || [];
+        const totalRows = res.data.total || 0;
+
+        if (pageNum === 1) {
+          setLocations(newRows);
+          setHasMore(newRows.length < totalRows);
+        } else {
+          setLocations(prev => [...prev, ...newRows]);
+          setHasMore(locations.length + newRows.length < totalRows);
+        }
+
+        setTotal(totalRows);
+        setPage(pageNum);
+      }
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+    } finally {
+      setLoading(false);
+      dispatch(showLoader(false));
+      setRefreshing(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchData(1, true);
+  };
+
+  const handleLoadMore = () => {
+    if (!loading && !loadingMore && hasMore) {
+      fetchData(page + 1);
+    }
+  };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchData(1);
+    }, [appliedZoneId]),
+  );
+
+  const handleCreate = () => {
+    setEditingLocation(null);
+    setModalVisible(true);
+  };
+
+  const handleEdit = (item: ILocation) => {
+    setEditingLocation(item);
+    setModalVisible(true);
+  };
+
+  const handleSubmit = async (data: any, keepOpen = false) => {
+    setSubmitting(true);
+    try {
+      const res = editingLocation
+        ? await updateLocation(editingLocation.id, data)
+        : await createLocation(data);
+
+      if (res.success) {
+        dispatch(
+          showToast({
+            message: editingLocation
+              ? 'Ubicación actualizada'
+              : 'Ubicación creada',
+            type: 'success',
+          }),
+        );
+
+        if (keepOpen) {
+          fetchData(1);
+        } else {
+          setModalVisible(false);
+          setEditingLocation(null);
+          fetchData(1);
+        }
+        return true;
+      } else {
+        dispatch(
+          showToast({ message: 'Error al guardar ubicación', type: 'error' }),
+        );
+        return false;
+      }
+    } catch (error) {
+      console.error('Error submitting location:', error);
+      return false;
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+  const [locationToDelete, setLocationToDelete] = useState<ILocation | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeletePress = (item: ILocation) => {
+    setLocationToDelete(item);
+    setDeleteDialogVisible(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!locationToDelete) return;
+    setIsDeleting(true);
+    try {
+      const res = await deleteLocation(locationToDelete.id);
+      if (res.success) {
+        dispatch(
+          showToast({ message: 'Ubicación eliminada', type: 'success' }),
+        );
+        fetchData(1);
+      }
+    } catch (error) {
+      dispatch(showToast({ message: 'Error al eliminar', type: 'error' }));
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogVisible(false);
+      setLocationToDelete(null);
+    }
+  };
+
+  const renderLocation = ({ item }: { item: ILocation }) => {
+    const initial = item.name ? item.name.charAt(0).toUpperCase() : 'L';
+    return (
+      <View style={styles.itemCard}>
+        <View style={styles.cardHeader}>
+          <View style={styles.avatarContainer}>
+            <ITText style={styles.avatarText}>{initial}</ITText>
+            <View
+              style={[
+                styles.statusDot,
+                { backgroundColor: item.active ? '#10B981' : '#EF4444' },
+              ]}
+            />
+          </View>
+
+          <View style={styles.headerInfo}>
+            <ITText
+              variant="titleMedium"
+              weight="700"
+              style={styles.locationName}
+              numberOfLines={1}
+            >
+              {item.name}
+            </ITText>
+            <ITText variant="labelSmall" style={styles.zoneText} numberOfLines={1}>
+              {item.zone?.name || 'Zona General'}
+            </ITText>
+          </View>
+
+          <ITBadge
+            label={item.active ? 'Activo' : 'Inactivo'}
+            variant={item.active ? 'success' : 'error'}
+            size="small"
+            dot
+          />
+        </View>
+
+        <View style={styles.cardBody}>
+          {item.reference && (
+            <View style={styles.infoItem}>
+              <Icon source="information-outline" size={16} color={theme.colors.slate500} />
+              <ITText variant="bodySmall" style={styles.infoText} numberOfLines={1}>
+                {item.reference}
+              </ITText>
+            </View>
+          )}
+          {item.aisle && (
+            <View style={styles.infoItem}>
+              <Icon source="view-column-outline" size={16} color={theme.colors.slate500} />
+              <ITText variant="bodySmall" style={styles.infoText} numberOfLines={1}>
+                Pasillo: {item.aisle}
+              </ITText>
+            </View>
+          )}
+          {item.spot && (
+            <View style={styles.infoItem}>
+              <Icon source="checkbox-blank-circle-outline" size={16} color={theme.colors.slate500} />
+              <ITText variant="bodySmall" style={styles.infoText} numberOfLines={1}>
+                Spot: {item.spot}
+              </ITText>
+            </View>
+          )}
+          {item.number && (
+            <View style={styles.infoItem}>
+              <Icon source="numeric" size={16} color={theme.colors.slate500} />
+              <ITText variant="bodySmall" style={styles.infoText} numberOfLines={1}>
+                Núm: {item.number}
+              </ITText>
+            </View>
+          )}
+        </View>
+
+        {isAdmin && (
+          <View style={styles.cardFooter}>
+            <ITTouchableOpacity
+              style={styles.footerButton}
+              onPress={() => handlePrintQR(item)}
+            >
+              <Icon source="qrcode" size={18} color={theme.colors.primary} />
+              <ITText style={styles.footerButtonText}>QR</ITText>
+            </ITTouchableOpacity>
+
+            <View style={styles.dividerVertical} />
+
+            <ITTouchableOpacity
+              style={styles.footerButton}
+              onPress={() => handleEdit(item)}
+            >
+              <Icon source="pencil-outline" size={18} color={theme.colors.primary} />
+              <ITText style={styles.footerButtonText}>Editar</ITText>
+            </ITTouchableOpacity>
+
+            <View style={styles.dividerVertical} />
+
+            <ITTouchableOpacity
+              style={styles.footerButton}
+              onPress={() => handleDeletePress(item)}
+            >
+              <Icon source="trash-can-outline" size={18} color="#EF4444" />
+              <ITText style={styles.footerButtonText} color="#EF4444">
+                Eliminar
+              </ITText>
+            </ITTouchableOpacity>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      <ITScreenDatatableLayout
+        title="Ubicaciones (Puntos)"
+        totalItems={total}
+        loading={loading}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
+        onLoadMore={handleLoadMore}
+        loadingMore={loadingMore}
+        showSearchBar={true}
+        searchQuery={search}
+        onSearchChange={setSearch}
+        searchBar={
+          <Searchbar
+            placeholder="Buscar por nombre..."
+            onChangeText={setSearch}
+            value={search}
+            style={styles.searchBar}
+            inputStyle={styles.searchInput}
+            iconColor={theme.colors.primary}
+            placeholderTextColor="#94A3B8"
+            elevation={0}
+          />
+        }
+        filterBadges={
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filtersRow}
+          >
+            <ITTouchableOpacity
+              onPress={() => setShowBulkModal(true)}
+              style={{ marginRight: 8 }}
+            >
+              <ITBadge label="Impresión Masiva" variant="primary" icon="qrcode" />
+            </ITTouchableOpacity>
+
+            <ITTouchableOpacity onPress={() => setAppliedStatus('ALL')}>
+              <ITBadge
+                label="Todos"
+                variant={appliedStatus === 'ALL' ? 'success' : 'default'}
+                outline={appliedStatus !== 'ALL'}
+              />
+            </ITTouchableOpacity>
+            <ITTouchableOpacity onPress={() => setAppliedStatus('ACTIVE')}>
+              <ITBadge
+                label="Activos"
+                variant={appliedStatus === 'ACTIVE' ? 'success' : 'default'}
+                outline={appliedStatus !== 'ACTIVE'}
+              />
+            </ITTouchableOpacity>
+            <ITTouchableOpacity onPress={() => setAppliedStatus('INACTIVE')}>
+              <ITBadge
+                label="Inactivos"
+                variant={appliedStatus === 'INACTIVE' ? 'error' : 'default'}
+                outline={appliedStatus !== 'INACTIVE'}
+              />
+            </ITTouchableOpacity>
+          </ScrollView>
+        }
+        data={locations}
+        renderItem={renderLocation}
+        keyExtractor={item => item.id.toString()}
+        fab={
+          isAdmin ? (
+            <FAB
+              icon="plus"
+              onPress={handleCreate}
+              color="#FFFFFF"
+              style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+            />
+          ) : undefined
+        }
+      />
+
+      <BulkPrintModal
+        visible={showBulkModal}
+        onDismiss={() => setShowBulkModal(false)}
+      />
+
+      <LocationFormModal
+        visible={modalVisible}
+        onDismiss={() => setModalVisible(false)}
+        onSubmit={handleSubmit}
+        initialData={editingLocation}
+        loading={submitting}
+      />
+
+      <ITAlert
+        visible={deleteDialogVisible}
+        onDismiss={() => setDeleteDialogVisible(false)}
+        onConfirm={confirmDelete}
+        title="Eliminar Ubicación"
+        description={`¿Estás seguro de que deseas eliminar "${locationToDelete?.name}"? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        type="alert"
+        loading={isDeleting}
+      />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+  },
+  searchBar: {
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    height: 44,
+  },
+  searchInput: {
+    minHeight: 0,
+    fontSize: 15,
+  },
+  itemCard: {
+    padding: 16,
+    marginBottom: 16,
+    marginHorizontal: 16,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  avatarContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  avatarText: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: theme.colors.primary,
+  },
+  statusDot: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  headerInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  locationName: {
+    color: '#1E293B',
+  },
+  zoneText: {
+    color: theme.colors.slate500,
+  },
+  cardBody: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    padding: 12,
+    gap: 8,
+    marginBottom: 16,
+  },
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  infoText: {
+    color: theme.colors.slate500,
+    flex: 1,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    paddingTop: 12,
+    marginTop: 4,
+  },
+  footerButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 4,
+  },
+  footerButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.primary,
+  },
+  dividerVertical: {
+    width: 1,
+    height: 20,
+    backgroundColor: '#F1F5F9',
+  },
+  filtersRow: {
+    gap: 8,
+    paddingRight: 12,
+  },
+  fab: {
+    position: 'absolute',
+    margin: 16,
+    right: 0,
+    bottom: 0,
+    borderRadius: 20,
+    elevation: 4,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  },
+});

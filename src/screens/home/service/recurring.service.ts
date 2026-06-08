@@ -1,0 +1,98 @@
+import { get } from '../../../core/axios';
+import { TResult } from '../../../core/types/TResult';
+import { database } from '../../../core/database/database';
+import { store } from '../../../core/store/redux.config';
+
+const getRecurringByGuardOffline = async (guardId: string): Promise<TResult<any[]>> => {
+  try {
+    const Q = require('@nozbe/watermelondb').Q;
+    const userState = store.getState().userState;
+    const residencialId = userState.residencialId;
+    const userRole = userState.role;
+
+    let query = database
+      .get('recurring_configurations')
+      .query(Q.where('active', true));
+
+    if (userRole !== 'ADMIN' && residencialId) {
+      query = query.extend(Q.where('client_id', residencialId));
+    }
+
+    const configs = await query.fetch();
+
+    const configList = [];
+    for (const config of configs) {
+      const recurringLocations = await database
+        .get('recurring_locations')
+        .query(Q.where('recurring_configuration_id', config.id))
+        .fetch();
+
+      const populatedLocations = [];
+      for (const rl of recurringLocations) {
+        const location = await database.get('locations').find(rl.locationId);
+        const tasks = await database
+          .get('recurring_tasks')
+          .query(Q.where('recurring_location_id', rl.id))
+          .fetch();
+
+        populatedLocations.push({
+          id: rl.id,
+          order: rl.order,
+          location: {
+            id: location.id,
+            name: location.name,
+            client_id: location.residencialId,
+            zone_id: location.zoneId,
+          },
+          tasks: tasks.map((t: any) => ({
+            id: t.id,
+            description: t.description,
+            req_photo: t.reqPhoto,
+          })),
+        });
+      }
+
+      configList.push({
+        id: config.id,
+        title: config.title,
+        residencialId: config.residencialId,
+        active: config.active,
+        recurringLocations: populatedLocations,
+      });
+    }
+
+    return { success: true, data: configList };
+  } catch (e: any) {
+    console.error('[RecurringService] Error getting offline configs:', e);
+    return {
+      success: false,
+      messages: [e.message || 'Error al cargar rutas offline'],
+    };
+  }
+};
+
+export const getRecurringByGuard = async (
+  guardId: string,
+): Promise<TResult<any[]>> => {
+  const NetInfo = require('@react-native-community/netinfo').default;
+  const netState = await NetInfo.fetch();
+
+  if (!netState.isConnected) {
+    return await getRecurringByGuardOffline(guardId);
+  }
+
+  try {
+    return await get(`/recurring/guard/${guardId}`);
+  } catch (error: any) {
+    const isNetworkOrServerError =
+      error?.message === 'Network Error' ||
+      error?.code === 'ERR_NETWORK' ||
+      !error?.response ||
+      (error?.response?.status && error.response.status >= 500);
+    if (isNetworkOrServerError) {
+      console.log('[RecurringService] Network or server error getting routes. Falling back to local...');
+      return await getRecurringByGuardOffline(guardId);
+    }
+    throw error;
+  }
+};

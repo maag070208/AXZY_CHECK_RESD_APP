@@ -1,0 +1,10 @@
+appId: com.axzydev.resd.checkapp
+---
+- clearState
+- launchApp
+- tapOn: 'Usuario'
+- inputText: 'admin'
+- tapOn: 'Contraseña'
+- inputText: '123456'
+- tapOn: 'Entrar al Sistema'
+- assertVisible: 'Dashboard'
